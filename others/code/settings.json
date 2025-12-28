@@ -1,0 +1,15 @@
+{
+    "vim.normalModeKeyBindings": [
+        {
+            "before": [
+                "<leader>",
+                " "
+            ],
+            "commands": [
+                "workbench.action.quickOpen"
+            ]
+        }
+    ],
+    "vim.leader": " ",
+    "github.copilot.nextEditSuggestions.enabled": true
+}

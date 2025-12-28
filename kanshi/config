@@ -1,0 +1,11 @@
+# Internal display only (when no external connected)
+profile internal {
+    output eDP-1 enable
+}
+
+# When external display is connected, default to extended mode
+# kanshi will match the first profile where all outputs are present
+profile external-connected {
+    output eDP-1 enable position 0,0
+    output * enable position 1920,0
+}

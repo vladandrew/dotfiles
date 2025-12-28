@@ -1,0 +1,57 @@
+{
+    "layer": "bottom",
+    "position": "top",
+    "height": 40,
+    "spacing": 0,
+    "modules-left": ["sway/workspaces","sway/mode"],
+    "modules-center": ["custom/clock"],
+    "modules-right": ["pulseaudio", "custom/battery", "tray"],
+
+    "sway/workspaces": {
+        "disable-scroll": true,
+        "format": "{icon}{name}",
+        "format-icons": {
+            "default": " ",
+            "urgent": "!",
+            "focused": "*"
+        }
+    },
+
+    "sway/mode": {
+        "format": "  {}"
+    },
+
+    "custom/clock": {
+        "format": "<span color='#252525'>[ </span>{text}<span color='#252525'> ]</span>",
+        "exec": "date +'%H:%M %A, %b %d' | awk '{print tolower($0)}'",
+        "interval": 3
+    },
+
+    "pulseaudio": {
+        "format": "<span color='#afa193'><b>vol:</b></span> {volume}%"
+    },
+    
+    "custom/battery": {
+        "exec": "~/.config/waybar/battery-with-profile.sh",
+        "return-type": "json",
+        "interval": 20,
+        "format": "<span color='#252525'> / </span><span color='#afa193'><b>bat:</b></span> {}",
+        "on-click": "~/.config/waybar/select-power-profile.sh"
+    },
+
+    "battery": {
+        "format": "<span color='#252525'> / </span><span color='#afa193'><b>bat:</b></span> {capacity}%",
+        "format-charging": "<span color='#252525'> / </span><span color='#afa193'><b>ac:</b></span> {capacity}%",
+        "tooltip": true,
+        "tooltip-format": "Power Profile: {capacity}%\n$(~/.config/waybar/get-power-profile.sh)",
+        "interval": 20,
+        "on-click": "~/.config/waybar/toggle-power-profile.sh"
+    },
+
+    
+    "tray": {
+        "icon-size": 25,
+        "spacing": 7,
+        "tooltip": false
+    }
+}

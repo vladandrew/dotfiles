@@ -1,0 +1,133 @@
+#!/bin/bash
+
+# Display mode switcher for Sway
+# Cycles through: internal-only -> external-only -> mirror -> internal-only
+
+STATE_FILE="${XDG_RUNTIME_DIR:-/tmp}/display-mode-state"
+INTERNAL_DISPLAY="eDP-1"  # Common internal display name, adjust if needed
+
+# Get current state (default to internal-only)
+get_current_state() {
+    if [[ -f "$STATE_FILE" ]]; then
+        cat "$STATE_FILE"
+    else
+        echo "internal-only"
+    fi
+}
+
+# Save state
+save_state() {
+    echo "$1" > "$STATE_FILE"
+}
+
+# Get all connected outputs
+get_outputs() {
+    swaymsg -t get_outputs | jq -r '.[] | select(.active != null) | .name'
+}
+
+# Get external outputs (non-internal)
+get_external_outputs() {
+    swaymsg -t get_outputs | jq -r ".[] | select(.name != \"$INTERNAL_DISPLAY\") | .name"
+}
+
+# Check if internal display exists
+has_internal() {
+    swaymsg -t get_outputs | jq -e ".[] | select(.name == \"$INTERNAL_DISPLAY\")" > /dev/null 2>&1
+}
+
+# Check if external display exists
+has_external() {
+    local external_count
+    external_count=$(swaymsg -t get_outputs | jq "[.[] | select(.name != \"$INTERNAL_DISPLAY\")] | length")
+    [[ "$external_count" -gt 0 ]]
+}
+
+# Set internal only mode
+set_internal_only() {
+    # Enable internal display
+    swaymsg output "$INTERNAL_DISPLAY" enable
+    
+    # Disable all external displays
+    for output in $(get_external_outputs); do
+        swaymsg output "$output" disable
+    done
+    
+    save_state "internal-only"
+    notify-send -t 2000 "Display Mode" "Internal Only"
+}
+
+# Set external only mode
+set_external_only() {
+    # Disable internal display
+    swaymsg output "$INTERNAL_DISPLAY" disable
+    
+    # Enable all external displays
+    for output in $(get_external_outputs); do
+        swaymsg output "$output" enable
+    done
+    
+    save_state "external-only"
+    notify-send -t 2000 "Display Mode" "External Only"
+}
+
+# Set mirror mode
+set_mirror() {
+    # Get the first external display
+    local external
+    external=$(get_external_outputs | head -n1)
+    
+    if [[ -z "$external" ]]; then
+        notify-send -t 2000 "Display Mode" "No external display found"
+        return 1
+    fi
+    
+    # Enable both displays
+    swaymsg output "$INTERNAL_DISPLAY" enable
+    swaymsg output "$external" enable
+    
+    # Get internal display resolution
+    local internal_res
+    internal_res=$(swaymsg -t get_outputs | jq -r ".[] | select(.name == \"$INTERNAL_DISPLAY\") | .current_mode | \"\(.width)x\(.height)\"")
+    
+    # Mirror: position both at 0,0 (overlapping)
+    swaymsg output "$INTERNAL_DISPLAY" pos 0 0
+    swaymsg output "$external" pos 0 0
+    
+    save_state "mirror"
+    notify-send -t 2000 "Display Mode" "Mirror"
+}
+
+# Cycle to next mode
+cycle_mode() {
+    local current
+    current=$(get_current_state)
+    
+    # Check what displays are available
+    local has_int has_ext
+    has_internal && has_int=1 || has_int=0
+    has_external && has_ext=1 || has_ext=0
+    
+    # If only one type of display, nothing to cycle
+    if [[ "$has_int" -eq 0 ]] || [[ "$has_ext" -eq 0 ]]; then
+        notify-send -t 2000 "Display Mode" "Need both internal and external displays to switch modes"
+        return 1
+    fi
+    
+    case "$current" in
+        "internal-only")
+            set_external_only
+            ;;
+        "external-only")
+            set_mirror
+            ;;
+        "mirror")
+            set_internal_only
+            ;;
+        *)
+            set_internal_only
+            ;;
+    esac
+}
+
+# Main
+cycle_mode
